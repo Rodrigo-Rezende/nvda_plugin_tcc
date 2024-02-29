@@ -1,20 +1,48 @@
-# Importa o módulo de log do NVDA
-import nvdaControllerClient
-# Importa a biblioteca pyautogui
-import pyautogui
+# Add-on development example using NVDA speech with error handling and navigating to error line
 
-# Função principal do plugin
-def script_echoCode(app, text, echoAll=True):
-    # Converte o texto para minúsculas para facilitar a manipulação
-    text = text.lower()
+import nvdaControllerClient # Import the NVDA controller client for speech functionality
 
-    # Verifica se o texto contém palavras-chave relacionadas a código
-    if "def " in text or "class " in text or "for " in text or "while " in text or "if " in text or "else " in text:
-        # Simula a leitura do código usando a biblioteca pyautogui
-        pyautogui.alert(text, title="Código", button="OK")
+class GlobalPlugin:
 
-# Conecta ao controlador NVDA
-nvda = nvdaControllerClient.Controller()
+    def __init__(self):
+        self.error_line = None  # Variable to store the line number where the error occurred
 
-# Registra a função do plugin
-nvda.script["echoCode"] = script_echoCode
+    def script_readCode(self, gesture):
+        try:
+            # Get code input from the user
+            code_to_read = self.getInput("Enter the code to be read:", "Code Input")
+
+            # Check if the user provided code
+            if code_to_read:
+                # Execute the code
+                exec(code_to_read)
+
+                # Initialize NVDA controller client
+                controller = nvdaControllerClient.Controller()
+
+                # Split the code into lines
+                lines = code_to_read.split('\n')
+
+                # Read each line along with the line number
+                for line_num, line in enumerate(lines, start=1):
+                    # Use NVDA's speech to read the line number and code
+                    controller.speakText(f"Line {line_num}: {line}")
+
+        except Exception as e:
+            # Handle exceptions by storing the error message and line number
+            self.error_line = line_num
+            controller.speakText(f"Error: {str(e)}")
+
+    def script_goToErrorLine(self, gesture):
+        if self.error_line is not None:
+            # Navigate to the line where the error occurred
+            self.goToLine(self.error_line)
+
+    def goToLine(self, line_number):
+        #Implement going to the line of code with the error
+        pass
+
+    __gestures = {
+        "kb:NVDA+C": "readCode",
+        "kb:NVDA+G": "goToErrorLine"
+    }
